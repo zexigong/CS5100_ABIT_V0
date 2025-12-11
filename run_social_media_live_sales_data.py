@@ -10,6 +10,7 @@ from abit_transforms.transforms.stft import STFTTransform
 from abit_transforms.transforms.wavelet import WaveletTransform
 from abit_transforms.cascades import TripleTransformCascade
 import matplotlib.ticker as mtick
+from abit_transforms import pattern_detection
 
 
 def compute_correlations(walmart_weekly, trends_weekly):
@@ -95,6 +96,22 @@ def main():
     #     patterns_trends[keyword], _ = triple_cascade.analyze(total_searches[keyword].values)
 
     # print(patterns_trends)
+    # 
+
+    # print(pattern_detection.detect_all_patterns(total_sales['Weekly_Sales'].values, 'WHS', total_sales.index, total_sales['Weekly_Sales'].values))
+
+    # print(pattern_detection.detect_all_patterns(total_searches['walmart jacket'].values, 'WHS', total_searches.index, total_searches['walmart jacket'].values))
+
+
+    plt.figure(figsize=(12, 5))
+    plt.plot(total_searches.index, total_searches['laptop'])
+    plt.title("Laptop Searches")
+    plt.xlabel("Date")
+    plt.ylabel("Searches")
+    plt.gca().yaxis.set_major_formatter(mtick.FormatStrFormatter('%.0f'))
+    # plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("laptop_plot.png")
 
 if __name__ == "__main__":
     main()

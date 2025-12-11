@@ -29,6 +29,8 @@ def detect_slow_trend(signal_data: pd.Series, threshold_slope: float = 0.05) -> 
     Returns:
         Dict with trend_type, percentage_change, slope, start_date, end_date
     """
+    signal_data = pd.Series(np.asarray(signal_data))
+
     x = np.arange(len(signal_data))
     y = signal_data.values
     
@@ -68,6 +70,8 @@ def detect_exponential_trend(signal_data: pd.Series) -> Optional[Dict[str, Any]]
     """
     Detects exponential growth/decay: y = a * exp(b*x)
     """
+    signal_data = pd.Series(np.asarray(signal_data))
+
     x = np.arange(len(signal_data))
     y = signal_data.values
     
@@ -119,6 +123,8 @@ def detect_polynomial_trend(signal_data: pd.Series, max_degree: int = 3) -> Opti
     """
     Detects polynomial trends (accelerating/decelerating growth).
     """
+    signal_data = pd.Series(np.asarray(signal_data))
+
     x = np.arange(len(signal_data))
     y = signal_data.values
     
@@ -331,6 +337,8 @@ def detect_seasonality(signal_data: pd.Series, min_period: int = 3, max_period: 
     """
     Detects seasonal patterns using FFT (Fourier Transform).
     """
+    
+    signal_data = pd.Series(np.asarray(signal_data))
     if max_period is None:
         max_period = len(signal_data) // 2
     
@@ -391,6 +399,8 @@ def detect_volatility(signal_data: pd.Series, window: int = 6) -> Dict[str, Any]
     """
     Detects high volatility periods using rolling standard deviation.
     """
+    signal_data = pd.Series(np.asarray(signal_data))
+
     rolling_std = signal_data.rolling(window=window, center=True).std()
     mean_volatility = rolling_std.mean()
     
@@ -516,7 +526,7 @@ def detect_patterns_from_wavelet(coefficients: np.ndarray, time_index: pd.Dateti
     """
     patterns = []
     
-    if coefficients.shape[1] == 0:
+    if coefficients is None or coefficients.ndim < 2 or coefficients.shape[1] == 0:
         return patterns
     
     # Analyze coarse scale (trend)
@@ -597,6 +607,9 @@ def detect_patterns_from_stft(stft_matrix: np.ndarray, time_index: pd.DatetimeIn
     Detect patterns from STFT spectrogram.
     """
     patterns = []
+
+    if stft_matrix is None or stft_matrix.size == 0 or stft_matrix.ndim < 2:
+        return patterns
     
     time_signal = np.sum(np.abs(stft_matrix), axis=1)
     
@@ -611,10 +624,10 @@ def detect_patterns_from_stft(stft_matrix: np.ndarray, time_index: pd.DatetimeIn
     exp_pattern = detect_exponential_trend(signal_series)
     if exp_pattern:
         patterns.append(exp_pattern)
-    else:
-        trend_pattern = detect_slow_trend(signal_series)
-        if trend_pattern['pattern_type'] != 'no_trend':
-            patterns.append(trend_pattern)
+
+    trend_pattern = detect_slow_trend(signal_series)
+    if trend_pattern['pattern_type'] != 'no_trend':
+        patterns.append(trend_pattern)
     
     # Detect seasonality
     seasonal = detect_seasonality(signal_series)
@@ -636,38 +649,34 @@ def detect_all_patterns(features: Any, feature_type: str, time_index: pd.Datetim
     # Route to appropriate detector
     if 'HHT' in feature_type or 'H' in feature_type:
         if isinstance(features, np.ndarray) and features.ndim == 2:
-            patterns = detect_patterns_from_hht(features, time_index)
-    elif 'Wavelet' in feature_type or 'W' in feature_type:
+            patterns.extend(detect_patterns_from_hht(features, time_index))
+    if 'Wavelet' in feature_type or 'W' in feature_type:
         if isinstance(features, np.ndarray):
-            patterns = detect_patterns_from_wavelet(features, time_index)
-    elif 'STFT' in feature_type or 'S' in feature_type:
+            patterns.extend(detect_patterns_from_wavelet(features, time_index))
+    if 'STFT' in feature_type or 'S' in feature_type:
         if isinstance(features, np.ndarray):
-            patterns = detect_patterns_from_stft(features, time_index)
+            patterns.extend(detect_patterns_from_stft(features, time_index))
     
     # Fallback: analyze original signal
-    if len(patterns) == 0 and original_signal is not None:
-        # Try exponential
-        exp = detect_exponential_trend(original_signal)
-        if exp:
-            patterns.append(exp)
-        else:
-            # Try polynomial
-            poly = detect_polynomial_trend(original_signal)
-            if poly:
-                patterns.append(poly)
-            else:
-                # Linear trend
-                trend = detect_slow_trend(original_signal)
-                if trend['pattern_type'] != 'no_trend':
-                    patterns.append(trend)
-        
-        # Seasonality
-        patterns.extend(detect_seasonality(original_signal)[:2])
-        
-        # Volatility
-        volatility = detect_volatility(original_signal)
-        if volatility['confidence'] != 'low':
-            patterns.append(volatility)
+    # Try exponential
+    exp = detect_exponential_trend(original_signal)
+    patterns.append(exp)
+    # Try polynomial
+    poly = detect_polynomial_trend(original_signal)
+    if poly:
+        patterns.append(poly)
+    # Linear trend
+    trend = detect_slow_trend(original_signal)
+    if trend['pattern_type'] != 'no_trend':
+        patterns.append(trend)
+
+    # Seasonality
+    patterns.extend(detect_seasonality(original_signal)[:2])
+    
+    # Volatility
+    volatility = detect_volatility(original_signal)
+    if volatility['confidence'] != 'low':
+        patterns.append(volatility)
     
     return patterns
 
