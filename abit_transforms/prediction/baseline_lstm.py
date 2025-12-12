@@ -12,13 +12,13 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras.layers import LSTM, Dense, Dropout
 
 # ------------------------
 # CONFIG
 # ------------------------
 WINDOW_SIZE = 12   # number of past steps used for prediction
-EPOCHS = 120
+EPOCHS = 100
 BATCH_SIZE = 8
 
 # ------------------------
@@ -27,8 +27,8 @@ BATCH_SIZE = 8
 # Replace this with sales data file
 
 try:
-    df = pd.read_csv("cookie_sales.csv")
-    sales = df['chocochip'].values
+    df = pd.read_csv("abit_transforms/complex_cookie_sales.csv")
+    sales = df['wavelet_pattern'].values
 except FileNotFoundError:
     print("⚠️ data/sales.csv not found. Generating dummy data instead.")
     np.random.seed(42)
@@ -60,7 +60,9 @@ y_train, y_test = y[:split], y[split:]
 # BUILD MODEL
 # ------------------------
 model = Sequential([
-    LSTM(64, activation='tanh', input_shape=(WINDOW_SIZE, 1)),
+    LSTM(64, return_sequences=True, input_shape=(WINDOW_SIZE, 1)),
+    Dropout(0.1),
+    LSTM(32, activation='tanh'),
     Dense(1)
 ])
 

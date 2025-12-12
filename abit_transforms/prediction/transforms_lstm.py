@@ -30,7 +30,7 @@ from transforms.wavelet import WaveletTransform
 # CONFIG
 # -------------------------
 WINDOW_SIZE = 12
-EPOCHS = 120
+EPOCHS = 100
 BATCH_SIZE = 8
 MAX_IMFS = 3
 MAX_WAVELETS = 3
@@ -40,8 +40,8 @@ MAX_STFT_PEAKS = 3
 # LOAD SALES DATA
 # -------------------------
 try:
-    df = pd.read_csv("cookie_sales.csv")
-    sales = df['chocochip'].values
+    df = pd.read_csv("abit_transforms/complex_cookie_sales.csv")
+    sales = df['wavelet_pattern'].values
 except FileNotFoundError:
     print("⚠️ data/sales.csv not found. Using synthetic data instead.")
     np.random.seed(42)
